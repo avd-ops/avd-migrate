@@ -1,6 +1,14 @@
 # avd-migrate — Single-Pool AVD Target-State Baseline Designer
 
-> **Personal project, not for production.** Provided as is, without warranty of any kind (MIT License). Not affiliated with, endorsed by or supported by the author's employer, Liquidware or Microsoft.
+Part of [avd-ops](https://avd-ops.dev/), the open toolkit for Azure Virtual Desktop.
+
+> [!WARNING]
+> **Personal project. Research and learning only. Not for production. No warranty.**
+>
+> - This is my own personal project, built on my own time **for research and learning**. It is **not affiliated with, endorsed by or supported by my employer, Liquidware or Microsoft**, and it does not represent their views, products or guidance. It is not an official Microsoft product, and it is not a certified or supported tool.
+> - **Don't run any of it in production** or against tenants that matter. Test in a dedicated lab subscription and tenant first. Output is not a production-readiness certification, a compliance attestation or a security audit.
+> - It is provided **"as is", without warranty of any kind**, under the [MIT License](LICENSE). You use it at your own risk and own the Azure charges it incurs.
+> - **Contributions and forks are welcome and encouraged.**
 
 `avd-migrate` (`https://migrate.avd-ops.dev`) is the open-source, single-pool baseline target-state designer for the [avd-ops](https://avd-ops.dev) family. It reads pseudonymous single-tenant Azure outputs from [`avd-current-state`](https://github.com/avd-ops/avd-current-state) and [`avd-assess`](https://github.com/avd-ops/avd-assess):
 
