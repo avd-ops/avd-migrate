@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>avd-migrate &mdash; Single-Pool Target-State Baseline Designer</title>
+<link rel="icon" href="../assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/avd-ops.css">
+<link rel="stylesheet" href="../assets/avd-ops-shell.css">
+<link rel="stylesheet" href="../assets/avd-ops-portal.css">
+<script src="../assets/theme.js" defer></script>
+<script type="module" src="./migrate-app.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <p class="warn">
+      <strong>Personal project, not for production.</strong> Provided as is, without warranty of any kind (MIT License).
+      Not affiliated with, endorsed by or supported by the author's employer, Liquidware or Microsoft.
+    </p>
+    <h1>avd-migrate &mdash; Single-Pool Baseline Designer</h1>
+    <p>
+      100% client-side designer (`connect-src 'none'`). Drop pseudonymous <code>C11</code> (<code>avd-current-state-facts/v1</code>),
+      <code>C19</code> (<code>avd-estate-intake/v1</code>), and optional <code>C27</code> (<code>avd-measured-usage/v1</code>) JSON files
+      to size a single baseline Pooled Desktop pool (<code>tp-01</code>, up to 180 hosts) and download <code>manifest.json</code> +
+      <code>manifest.approval.json</code> for <code>avd-landing-zone</code>.
+    </p>
+  </header>
+
+  <section aria-labelledby="step1-heading">
+    <h2 id="step1-heading">1. Load Estate Inputs or Sample Preset</h2>
+    <div>
+      <button type="button" id="btn-preset-single">Load 150-User Single-Pool Preset (with C27)</button>
+      <button type="button" id="btn-preset-multi">Load 3-Pool Auto-Merge Preset (Boundary Demo)</button>
+    </div>
+    <div>
+      <label for="file-c11">C11 Current-State Facts (<code>current-state-facts.json</code>):</label>
+      <input type="file" id="file-c11" accept=".json,application/json">
+    </div>
+    <div>
+      <label for="file-c19">C19 Estate Intake (<code>intake.json</code>):</label>
+      <input type="file" id="file-c19" accept=".json,application/json">
+    </div>
+    <div>
+      <label for="file-c27">C27 Measured Usage (optional, <code>measured-usage.json</code>):</label>
+      <input type="file" id="file-c27" accept=".json,application/json">
+    </div>
+    <p id="status-banner" role="status" aria-live="polite">Ready. Select a sample preset or drop your JSON files.</p>
+  </section>
+
+  <section aria-labelledby="step2-heading">
+    <h2 id="step2-heading">2. Single-Pool Baseline Summary (<code>tp-01</code>)</h2>
+    <div id="boundary-notices" hidden></div>
+    <div id="summary-cards"></div>
+  </section>
+
+  <section aria-labelledby="step3-heading">
+    <h2 id="step3-heading">3. Download C14 Manifest &amp; Approval + Cloud Shell Hand-Off</h2>
+    <div>
+      <button type="button" id="btn-download-manifest" disabled>Download manifest.json (C14 v1)</button>
+      <button type="button" id="btn-download-approval" disabled>Download manifest.approval.json</button>
+    </div>
+    <h3>Cloud Shell / Local PowerShell Hand-Off (<code>avd-landing-zone</code>)</h3>
+    <pre><code id="cloudshell-snippet"># Load an estate above to generate the ConvertFrom-AvdTargetState.ps1 command.</code></pre>
+    <h3>Generated <code>manifest.json</code> Preview</h3>
+    <pre><code id="manifest-preview">{}</code></pre>
+  </section>
+</main>
+</body>
+</html>

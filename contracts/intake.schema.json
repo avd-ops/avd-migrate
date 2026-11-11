@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://assess.avd-ops.dev/schemas/avd-intake/v1.json",
+  "title": "avd-intake/v1: what telemetry can't know about an estate (intake.json)",
+  "description": "Contract C19. The operator answers these once per estate, in intake.json beside their landing zone parameters. It gives the fact register's intake.* facts their paths; hostSharing, avdMfa, reportedSymptoms, userNetworks, userSentiment, appDelivery, appCompatibility, profileSolution, hostAgents, clientAgents and agentRdpBypass are optional. Every answer is an enum, a banded sample count, a bounded score, a public Azure region or a clock time: the schema has no field for a name, a domain, an address, an ID or free text. Why each question matters is in avd-assess methods/collection.md and gaps/intake.md.",
+  "type": "object",
+  "required": ["schema", "estate", "answeredOn", "residency", "preferredRegions", "existingHub", "identityConstraints", "workingHours"],
+  "additionalProperties": false,
+  "$defs": {
+    "region": { "type": "string", "pattern": "^[a-z0-9]{2,40}$", "description": "An Azure region's programmatic name, for example eastus2" },
+    "clock": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+    "sampleBand": {
+      "enum": ["1-2", "3-9", "10-25", "26-100", "100+"],
+      "description": "Banded sample count so an individual user check cannot be singled out"
+    },
+    "linecheckSymptom": {
+      "enum": ["slow-typing", "frozen-blurry-screen", "teams-audio-video", "disconnects", "sign-in", "printing", "slow-apps"],
+      "description": "Closed symptom chip IDs from avd-linecheck (gaps/client-network.md)"
+    },
+    "userSentimentSummary": {
+      "type": "object",
+      "description": "Banded, PII-free rollup of user experience ratings (1..5) and symptom chips from avd-linecheck exports; never inferred from free text.",
+      "required": ["sampleBand"],
+      "additionalProperties": false,
+      "properties": {
+        "sampleBand": { "$ref": "#/$defs/sampleBand" },
+        "ratingMedian": { "type": "number", "minimum": 1, "maximum": 5 },
+        "lowRatingShare": { "type": "number", "minimum": 0, "maximum": 1, "description": "Share of rated samples with rating <= 2" },
+        "symptoms": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 7,
+          "items": { "$ref": "#/$defs/linecheckSymptom" }
+        }
+      }
+    },
+    "userNetworkEntry": {
+      "type": "object",
+      "description": "One user network vantage point (office, branch, home, guest, partner) aggregated from avd-linecheck exports or operator testing (gaps/client-network.md).",
+      "required": ["kind", "allowsClientEndpoints", "outboundUdpAllowed", "proxyInPath"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["office", "branch", "home", "guest", "partner", "other"] },
+        "sampleBand": { "$ref": "#/$defs/sampleBand" },
+        "allowsClientEndpoints": { "enum": ["yes", "no", "unknown"] },
+        "outboundUdpAllowed": { "enum": ["yes", "no", "unknown"] },
+        "proxyInPath": { "enum": ["yes", "no", "possible", "unknown"] },
+        "tunnelInPath": { "enum": ["yes", "no", "possible", "unknown"] },
+        "targetRegion": { "$ref": "#/$defs/region" },
+        "targetRegionRttMs": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "jitterMs": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "candidateRegionsRttMs": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/region" },
+          "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 10000 }
+        },
+        "sentiment": { "$ref": "#/$defs/userSentimentSummary" }
+      }
+    }
+  },
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema": { "const": "avd-intake/v1" },
+    "estate": { "type": "string", "pattern": "^est-[0-9a-f]{8}$", "description": "The same keyed pseudonym as the estate's C11 snapshot" },
+    "answeredOn": { "type": "string", "format": "date" },
+    "cloud": {
+      "description": "Fact intake.cloud (optional). Target sovereign or commercial cloud environment (default commercial).",
+      "enum": ["commercial", "usgov"]
+    },
+    "complianceProfile": {
+      "description": "Fact intake.complianceProfile (optional). Regulatory compliance profile governing device redirection and cryptographic defaults (default standard).",
+      "enum": ["standard", "itar-cui"]
+    },
+    "residency": {
+      "type": "object",
+      "description": "Fact intake.residency. Whether data must stay in named regions, and which.",
+      "required": ["required", "regions"],
+      "additionalProperties": false,
+      "properties": {
+        "required": { "type": "boolean" },
+        "regions": { "type": "array", "uniqueItems": true, "maxItems": 10, "items": { "$ref": "#/$defs/region" } }
+      },
+      "if": { "properties": { "required": { "const": true } } },
+      "then": { "properties": { "regions": { "minItems": 1 } } },
+      "else": { "properties": { "regions": { "maxItems": 0 } } }
+    },
+    "preferredRegions": {
+      "type": "array",
+      "description": "Fact intake.preferredRegions. Most preferred first; the users' own latency measurement decides between them.",
+      "uniqueItems": true,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/region" }
+    },
+    "existingHub": {
+      "description": "Fact intake.existingHub. The network the landing zone has to join, if any.",
+      "enum": ["none", "azure-hub", "vwan", "other"]
+    },
+    "identityConstraints": {
+      "description": "Fact intake.identityConstraints. The identity lane the estate is held to.",
+      "enum": ["entra-only", "hybrid-ad", "entra-ds", "undecided"]
+    },
+    "workingHours": {
+      "type": "object",
+      "description": "Fact intake.workingHours. When most users work, for power settings.",
+      "required": ["start", "end", "days", "timeZone"],
+      "additionalProperties": false,
+      "properties": {
+        "start": { "$ref": "#/$defs/clock" },
+        "end": { "$ref": "#/$defs/clock" },
+        "days": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] } },
+        "timeZone": { "type": "string", "pattern": "^(UTC|[A-Z][A-Za-z]+(/[A-Z][A-Za-z_+-]+){1,2})$", "description": "An IANA time zone name, for example America/Chicago" }
+      }
+    },
+    "hostSharing": {
+      "description": "Fact intake.hostSharing (optional). Who shares a session host, which decides between pooled, personal and a separate tenant (avd-assess methods/security.md).",
+      "enum": ["one-org-standard", "needs-admin", "multi-org", "undecided"]
+    },
+    "avdMfa": {
+      "description": "Fact intake.avdMfa (optional). Whether sign-in to AVD requires multifactor authentication, until a directory read can see it.",
+      "enum": ["required", "not-required", "unknown"]
+    },
+    "reportedSymptoms": {
+      "description": "Fact intake.reportedSymptoms (optional). The problems the operator reports or aggregates from user network checks, each picking a triage flow (avd-assess methods/diagnostics.md); none or unknown stand alone.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["no-resources", "sign-in-fails", "cannot-connect", "disconnects", "slow-logon", "slow-session", "profile-failed", "host-unhealthy", "none", "unknown"] },
+      "anyOf": [
+        { "maxItems": 1 },
+        { "items": { "not": { "enum": ["none", "unknown"] } } }
+      ]
+    },
+    "userNetworks": {
+      "description": "Fact intake.userNetworks (optional). Per-network reachability, region latency and banded user sentiment from avd-linecheck or operator tests (avd-assess gaps/client-network.md).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/userNetworkEntry" }
+    },
+    "userSentiment": {
+      "description": "Fact intake.userSentiment (optional). Estate-wide banded user sentiment and symptom rollup from avd-linecheck exports (avd-assess gaps/client-network.md, gaps/intake.md).",
+      "$ref": "#/$defs/userSentimentSummary"
+    },
+    "appDelivery": {
+      "description": "Fact intake.appDelivery (optional). Every way apps reach the session hosts. host-deployment is software distribution to running hosts; app-layering is a third-party app layering or streaming product, as a category (avd-assess gaps/app-delivery-scope.md).",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["image", "app-attach", "host-deployment", "app-layering", "user-installed", "undecided"]},
+      "if": {"contains": {"const": "undecided"}},
+      "then": {"maxItems": 1}
+    },
+    "appCompatibility": {
+      "description": "Fact intake.appCompatibility (optional). Whether the estate's apps are known to run on multi-session hosts.",
+      "enum": ["all-tested", "some-untested", "known-blockers", "unknown"]
+    },
+    "profileSolution": {
+      "description": "Fact intake.profileSolution (optional). What carries the user profile between sessions; other-profile-product is a third-party profile management product, as a category.",
+      "enum": ["fslogix", "other-profile-product", "local-only", "undecided"]
+    },
+    "hostAgents": {
+      "description": "Fact intake.hostAgents (optional). The security agent categories on session hosts, never product names (avd-assess gaps/security-agents-scope.md); Microsoft's own antivirus and EDR are named because the published guidance is theirs. none or unknown stand alone.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["defender-antivirus", "defender-endpoint", "third-party-antivirus", "third-party-edr", "sse-ztna-client", "vpn-client", "web-proxy", "dlp-agent", "none", "unknown"]},
+      "anyOf": [
+        { "maxItems": 1 },
+        { "items": { "not": { "enum": ["none", "unknown"] } } }
+      ]
+    },
+    "clientAgents": {
+      "description": "Fact intake.clientAgents (optional). What sits in the path on the devices users connect from, as categories (avd-assess gaps/security-agents-scope.md); none or unknown stand alone.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["sse-ztna-client", "vpn-full-tunnel", "vpn-split-tunnel", "web-proxy", "tls-inspection", "none", "unknown"]},
+      "anyOf": [
+        { "maxItems": 1 },
+        { "items": { "not": { "enum": ["none", "unknown"] } } }
+      ]
+    },
+    "agentRdpBypass": {
+      "description": "Fact intake.agentRdpBypass (optional). Whether RDP traffic is split out of tunnels, proxies and inspection on the user devices, the session hosts, both or neither.",
+      "enum": ["both-sides", "client-only", "host-only", "neither", "no-agents", "unknown"]
+    },
+    "m365PlaneScope": {
+      "description": "Fact intake.m365PlaneScope (optional). Whether the estate uses Microsoft 365 productivity configuration for AVD, manages it outside the AVD plane, or does not use M365.",
+      "enum": ["in-scope", "managed-separately", "not-used"]
+    },
+    "powerPlatformPlaneScope": {
+      "description": "Fact intake.powerPlatformPlaneScope (optional). Whether the estate uses Power Platform day-2 automation for AVD.",
+      "enum": ["in-scope", "not-used"]
+    },
+    "avdScope": {
+      "description": "Fact intake.avdScope (optional). Whether the estate runs Azure Virtual Desktop host pools.",
+      "enum": ["in-scope", "not-used"]
+    },
+    "win365Scope": {
+      "description": "Fact intake.win365Scope (optional). Whether the estate runs Windows 365 Cloud PCs managed through Intune.",
+      "enum": ["in-scope", "not-used"]
+    },
+    "userLicense": {
+      "description": "Fact intake.userLicense (optional). Which license covers the users, deciding whether per-user access pricing applies (avd-assess gaps/finops-scope.md).",
+      "enum": ["m365-or-windows-enterprise", "rds-cal", "per-user-access", "unknown"]
+    },
+    "computeCommitments": {
+      "description": "Fact intake.computeCommitments (optional). Whether the organization holds VM reservations or a compute savings plan covering the estate (avd-assess gaps/finops-scope.md).",
+      "enum": ["reservation", "savings-plan", "both", "none", "unknown"]
+    },
+    "recoveryTime": {
+      "description": "Fact intake.recoveryTime (optional). After an outage, deletion or bad change, how long users of the most critical workload can be without their desktops (avd-assess gaps/reliability-scope.md).",
+      "enum": ["under-1h", "1h-to-8h", "8h-to-24h", "over-24h", "undecided"]
+    },
+    "recoveryPoint": {
+      "description": "Fact intake.recoveryPoint (optional). For the most critical workload, how much recent profile and app data may be lost (avd-assess gaps/reliability-scope.md).",
+      "enum": ["minutes", "under-24h", "over-24h", "undecided"]
+    },
+    "regionRecovery": {
+      "description": "Fact intake.regionRecovery (optional). Whether the estate must come back after a whole region is lost (avd-assess gaps/reliability-scope.md).",
+      "enum": ["required", "not-required", "undecided"]
+    },
+    "recoveryDependencies": {
+      "description": "Fact intake.recoveryDependencies (optional). Whether identity, DNS, network paths and line-of-business apps are available in the recovery region (avd-assess gaps/reliability-scope.md).",
+      "enum": ["all", "some", "none", "unknown"]
+    },
+    "profileData": {
+      "description": "Fact intake.profileData (optional). What the profile containers hold (avd-assess gaps/reliability-scope.md).",
+      "enum": ["settings-only", "user-data", "unknown"]
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Optional, for upper layers only, keyed by namespace (contracts/README.md rule 1). A foundation reader ignores it.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]{1,30}$" }
+    }
+  }
+}

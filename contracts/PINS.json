@@ -1,0 +1,16 @@
+{
+  "assessCommit": "bd2a2034a5f9fad2c4cf9bee861c58d064cc1432",
+  "brainCommit": "36ccf1238cae450f10cac693620de89dc03b555e",
+  "landingZoneCommit": "2c808222df9874a7fc26902594d800a2da8900e3",
+  "factRegisterVersion": 1,
+  "files": {
+    "current-state-facts.schema.json": "718eab774acc4fa6cf9aca50636b3226808b8bd304afd85081527241bce570e6",
+    "fact-register.json": "23f8fa464c3bde50cb0c7fed76cb2a9677169c1201cb0f92c6c70b5409fdcd6e",
+    "intake.schema.json": "d686a4bc4c4207878bc1470a06e707d4346f2601ac01d6eaa086a66a411a9132",
+    "measured-usage.schema.json": "b8aa9dea2e7c8907dbf91485673a51befb7e6ac2335b8fd7053ae9395bd5fcee",
+    "target-approval.schema.json": "02459b9471b00cc46a69afcbbfce20bf2a6b52d3d7269e63849b0b5267195277",
+    "target-state-capabilities.json": "018859aadb071b844e8ccc606c2b2bd0af5c6c76866279ddaeeee312062c6b2e",
+    "target-state.schema.json": "0e456d0bff2670ee4ae43dbb798dec55ce17a886ffff07c7067f9dd09dbceb8d",
+    "workload-tiers.json": "d965ea0dee995ee4987be9918c567bc917ce22b5e7466d0b898b8c1c8ffe0b4f"
+  }
+}

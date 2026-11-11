@@ -1,0 +1,27 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '22'
+      - name: Run Node portal tests
+        run: node --test "tests/portal/*.test.mjs"
+      - name: Run PSScriptAnalyzer and Pester
+        shell: pwsh
+        run: |
+          Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.23.0 -Force -Scope CurrentUser
+          Install-Module -Name Pester -RequiredVersion 5.6.1 -Force -Scope CurrentUser
+          Invoke-ScriptAnalyzer -Path ./ConvertTo-AvdTargetState.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit
+          Invoke-Pester -Path ./tests -CI
