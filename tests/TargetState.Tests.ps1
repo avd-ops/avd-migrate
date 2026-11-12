@@ -152,4 +152,53 @@ Describe 'ConvertTo-AvdTargetState.ps1 (avd-migrate single-pool baseline designe
             Remove-Item -LiteralPath $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+
+    It 'Supports BasicTenantToTenant mode, flattens target identity to EntraOnly, and emits t2t-checklist.json' {
+        $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "avd-migrate-t2t-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
+        New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
+        try {
+            $c11Path = Join-Path $tmpDir 'c11.json'
+            $intakePath = Join-Path $tmpDir 'intake.json'
+            $outDir = Join-Path $tmpDir 'out'
+
+            @{
+                schema       = 'avd-current-state-facts/v1'
+                estate       = 'est-7270ba51'
+                generatedUtc = '2026-11-11T12:00:00Z'
+                hostPools    = @(
+                    @{ id = 'hp-7270ba51'; type = 'Pooled'; preferredAppGroupType = 'Desktop'; assignedUsers = 120; sessionHosts = 6 }
+                )
+            } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $c11Path -Encoding UTF8
+
+            @{
+                schema              = 'avd-estate-intake/v1'
+                estate              = 'est-7270ba51'
+                answeredOn          = '2026-11-11'
+                preferredRegions    = @('eastus2')
+                existingHub         = 'none'
+                identityConstraints = 'ad-ds-required'
+            } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $intakePath -Encoding UTF8
+
+            & $script:ScriptPath -CurrentStatePath $c11Path -IntakePath $intakePath -OutputDirectory $outDir -MigrationMode BasicTenantToTenant
+
+            $manifestRaw = Get-Content -LiteralPath (Join-Path $outDir 'manifest.json') -Raw -Encoding UTF8
+            $approvalRaw = Get-Content -LiteralPath (Join-Path $outDir 'manifest.approval.json') -Raw -Encoding UTF8
+            $checklistPath = Join-Path $outDir 't2t-checklist.json'
+            Test-Path -LiteralPath $checklistPath | Should -BeTrue
+
+            ($manifestRaw | Test-Json -SchemaFile $script:TargetSchemaPath) | Should -BeTrue
+            ($approvalRaw | Test-Json -SchemaFile $script:ApprovalSchemaPath) | Should -BeTrue
+
+            $manifestObj = $manifestRaw | ConvertFrom-Json
+            $checklistObj = (Get-Content -LiteralPath $checklistPath -Raw -Encoding UTF8) | ConvertFrom-Json
+            $manifestObj.identity.value | Should -Be 'EntraOnly'
+            $manifestObj.target.renderer | Should -Be 'lz-cloudnative'
+            $checklistObj.schema | Should -Be 'avd-t2t-basic-checklist/v1'
+            $checklistObj.migrationMode | Should -Be 'basic-t2t'
+            $checklistObj.steps.Count | Should -Be 4
+        }
+        finally {
+            Remove-Item -LiteralPath $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }

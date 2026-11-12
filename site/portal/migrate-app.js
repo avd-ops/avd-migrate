@@ -9,6 +9,7 @@ const state = {
   c11: null,
   intake: null,
   measuredUsage: null,
+  migrationMode: "same-tenant",
   lastResult: null,
 };
 
@@ -32,6 +33,7 @@ async function renderCurrentState() {
   const snippet = document.getElementById("cloudshell-snippet");
   const btnManifest = document.getElementById("btn-download-manifest");
   const btnApproval = document.getElementById("btn-download-approval");
+  const btnT2t = document.getElementById("btn-download-t2t-checklist");
 
   if (!state.c11 || !state.intake) {
     banner.textContent = "Waiting for both C11 (current-state-facts.json) and C19 (intake.json).";
@@ -39,11 +41,13 @@ async function renderCurrentState() {
   }
 
   try {
-    const res = await buildManifestAndApproval(state.c11, state.intake, state.measuredUsage);
+    const res = await buildManifestAndApproval(state.c11, state.intake, state.measuredUsage, {
+      migrationMode: state.migrationMode,
+    });
     state.lastResult = res;
     const hp = res.manifest.hostPools[0];
 
-    banner.textContent = `RESULT PASS: Designed ${res.manifest.estate} (${hp.id}, ${hp.hosts.value} hosts, $${res.manifest.cost.monthlyEstimate.toFixed(2)}/mo, SHA-256 ${res.approval.manifestSha256.slice(0, 12)}...)`;
+    banner.textContent = `RESULT PASS: Designed ${res.manifest.estate} (${hp.id}, ${res.migrationMode}, ${hp.hosts.value} hosts, $${res.manifest.cost.monthlyEstimate.toFixed(2)}/mo, SHA-256 ${res.approval.manifestSha256.slice(0, 12)}...)`;
 
     if (res.boundaryNotices.length > 0) {
       noticesBox.hidden = false;
@@ -69,23 +73,33 @@ async function renderCurrentState() {
     `;
 
     preview.textContent = res.manifestJson;
+    const snippetHeader =
+      res.migrationMode === "basic-t2t"
+        ? "# Render avd.bicepparam in avd-landing-zone (supply destination-tenant Subscription & Group Object IDs):"
+        : "# Render avd.bicepparam in avd-landing-zone:";
     snippet.textContent = [
-      "# Render avd.bicepparam in avd-landing-zone:",
+      snippetHeader,
       "./scripts/ConvertFrom-AvdTargetState.ps1 `",
       "    -ManifestPath ./manifest.json `",
       "    -ApprovalPath ./manifest.approval.json `",
-      "    -SubscriptionId $SubscriptionId `",
-      "    -AvdUsersGroupObjectId $AvdUsersGroupObjectId `",
-      "    -AvdAdminsGroupObjectId $AvdAdminsGroupObjectId `",
+      "    -SubscriptionId $DestinationSubscriptionId `",
+      "    -AvdUsersGroupObjectId $DestinationAvdUsersGroupObjectId `",
+      "    -AvdAdminsGroupObjectId $DestinationAvdAdminsGroupObjectId `",
       "    -OutputPath ./avd.bicepparam",
     ].join("\n");
 
     btnManifest.disabled = false;
     btnApproval.disabled = false;
+    if (btnT2t) {
+      btnT2t.disabled = !res.t2tChecklistJson;
+    }
   } catch (err) {
     banner.textContent = `ERROR: ${err.message}`;
     btnManifest.disabled = true;
     btnApproval.disabled = true;
+    if (btnT2t) {
+      btnT2t.disabled = true;
+    }
   }
 }
 
@@ -106,10 +120,18 @@ document.addEventListener("DOMContentLoaded", () => {
   wireFileInput("file-c19", "intake");
   wireFileInput("file-c27", "measuredUsage");
 
+  const modeSelect = document.getElementById("select-migration-mode");
+  modeSelect?.addEventListener("change", async (ev) => {
+    state.migrationMode = ev.target.value || "same-tenant";
+    await renderCurrentState();
+  });
+
   document.getElementById("btn-preset-single")?.addEventListener("click", async () => {
     state.c11 = structuredClone(SAMPLE_PRESETS.singlePoolEntra.c11);
     state.intake = structuredClone(SAMPLE_PRESETS.singlePoolEntra.intake);
     state.measuredUsage = structuredClone(SAMPLE_PRESETS.singlePoolEntra.measuredUsage);
+    state.migrationMode = "same-tenant";
+    if (modeSelect) modeSelect.value = "same-tenant";
     await renderCurrentState();
   });
 
@@ -117,6 +139,17 @@ document.addEventListener("DOMContentLoaded", () => {
     state.c11 = structuredClone(SAMPLE_PRESETS.multiPoolMerged.c11);
     state.intake = structuredClone(SAMPLE_PRESETS.multiPoolMerged.intake);
     state.measuredUsage = null;
+    state.migrationMode = "same-tenant";
+    if (modeSelect) modeSelect.value = "same-tenant";
+    await renderCurrentState();
+  });
+
+  document.getElementById("btn-preset-t2t")?.addEventListener("click", async () => {
+    state.c11 = structuredClone(SAMPLE_PRESETS.basicT2tEntra.c11);
+    state.intake = structuredClone(SAMPLE_PRESETS.basicT2tEntra.intake);
+    state.measuredUsage = null;
+    state.migrationMode = "basic-t2t";
+    if (modeSelect) modeSelect.value = "basic-t2t";
     await renderCurrentState();
   });
 
@@ -129,6 +162,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-download-approval")?.addEventListener("click", () => {
     if (state.lastResult) {
       downloadJsonFile("manifest.approval.json", state.lastResult.approvalJson);
+    }
+  });
+
+  document.getElementById("btn-download-t2t-checklist")?.addEventListener("click", () => {
+    if (state.lastResult?.t2tChecklistJson) {
+      downloadJsonFile("t2t-checklist.json", state.lastResult.t2tChecklistJson);
     }
   });
 });

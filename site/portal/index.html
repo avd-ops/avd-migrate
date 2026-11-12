@@ -33,6 +33,14 @@
     <div>
       <button type="button" id="btn-preset-single">Load 150-User Single-Pool Preset (with C27)</button>
       <button type="button" id="btn-preset-multi">Load 3-Pool Auto-Merge Preset (Boundary Demo)</button>
+      <button type="button" id="btn-preset-t2t">Load Basic Tenant-to-Tenant (T2T) Preset</button>
+    </div>
+    <div>
+      <label for="select-migration-mode">Migration Mode:</label>
+      <select id="select-migration-mode">
+        <option value="same-tenant">Same-Tenant Baseline (Default)</option>
+        <option value="basic-t2t">Basic Tenant-to-Tenant (T2T Single-Pool)</option>
+      </select>
     </div>
     <div>
       <label for="file-c11">C11 Current-State Facts (<code>current-state-facts.json</code>):</label>
@@ -60,6 +68,7 @@
     <div>
       <button type="button" id="btn-download-manifest" disabled>Download manifest.json (C14 v1)</button>
       <button type="button" id="btn-download-approval" disabled>Download manifest.approval.json</button>
+      <button type="button" id="btn-download-t2t-checklist" disabled>Download t2t-checklist.json (Basic T2T)</button>
     </div>
     <h3>Cloud Shell / Local PowerShell Hand-Off (<code>avd-landing-zone</code>)</h3>
     <pre><code id="cloudshell-snippet"># Load an estate above to generate the ConvertFrom-AvdTargetState.ps1 command.</code></pre>
