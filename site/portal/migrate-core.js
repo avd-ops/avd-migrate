@@ -232,8 +232,28 @@ export function buildBaselineTargetState(c11, intake, measuredUsage = null, opti
   const monthlyEstimate = Number((computeMonthly + storageMonthly).toFixed(2));
 
   // 4. Identity, Region, and Network decisions
-  const identityVal =
+  const migrationMode = options.migrationMode || "same-tenant";
+  if (migrationMode !== "same-tenant" && migrationMode !== "basic-t2t") {
+    throw new Error(`Unsupported migrationMode '${migrationMode}'; expected 'same-tenant' or 'basic-t2t'.`);
+  }
+
+  let identityVal =
     intake.identityConstraints === "ad-ds-required" ? "HybridADDS" : "EntraOnly";
+  if (migrationMode === "basic-t2t") {
+    if (intake.identityConstraints === "ad-ds-required") {
+      boundaryNotices.push({
+        code: "basic-t2t-identity-flattened",
+        message:
+          "Basic Tenant-to-Tenant (T2T) mode targets a clean EntraOnly pool (tp-01) in the destination Entra directory; source ad-ds-required constraint was flattened.",
+      });
+    }
+    identityVal = "EntraOnly";
+    boundaryNotices.push({
+      code: "basic-t2t-mode",
+      message:
+        "Basic Tenant-to-Tenant (T2T) mode sizes a single destination pool (tp-01). User/group provisioning in the destination Entra directory, fresh FSLogix profile initialization (or OneDrive KFM), and supplying destination Group Object IDs to ConvertFrom-AvdTargetState.ps1 are manual steps in t2t-checklist.json.",
+    });
+  }
   const preferredRegions = Array.isArray(intake.preferredRegions) && intake.preferredRegions.length > 0
     ? intake.preferredRegions
     : ["eastus2"];
@@ -416,10 +436,61 @@ export function buildBaselineTargetState(c11, intake, measuredUsage = null, opti
 
   scanForLeaks(manifest, "C14 target-state manifest");
 
+  const t2tChecklist =
+    migrationMode === "basic-t2t"
+      ? {
+          schema: "avd-t2t-basic-checklist/v1",
+          estate: estateId,
+          engagement: engagementId,
+          generatedUtc,
+          migrationMode: "basic-t2t",
+          targetPoolId: "tp-01",
+          users: totalUsers,
+          profileMode: "fresh-fslogix-or-kfm",
+          boundaryNotices: boundaryNotices.map((n) => n.message),
+          steps: [
+            {
+              phase: "pre-cutover",
+              id: "t2t-01-identities",
+              title: "Provision users and AVD security groups in the destination Entra directory",
+              detail:
+                "Create or invite user accounts in the destination tenant and record the destination AvdUsersGroupObjectId and AvdAdminsGroupObjectId.",
+            },
+            {
+              phase: "pre-cutover",
+              id: "t2t-02-deploy-stamp",
+              title: "Render avd.bicepparam and deploy the destination single-pool landing zone",
+              detail:
+                "Run ConvertFrom-AvdTargetState.ps1 with the destination SubscriptionId, AvdUsersGroupObjectId, and AvdAdminsGroupObjectId.",
+            },
+            {
+              phase: "cutover",
+              id: "t2t-03-profile-kfm",
+              title: "Initialize fresh FSLogix profile containers in the destination tenant",
+              detail:
+                "Basic T2T creates a clean FSLogix VHD(X) container per destination user SID on first sign-in (use OneDrive Known Folder Move to carry user documents across directories; offline VHDX SID re-ACL is not performed in basic mode).",
+            },
+            {
+              phase: "post-cutover",
+              id: "t2t-04-drain-source",
+              title: "Drain source host pool sessions after destination sign-in verification",
+              detail:
+                "Set allowNewSession=false on source host pool(s) once users confirm access to tp-01 in the destination tenant.",
+            },
+          ],
+        }
+      : null;
+
+  if (t2tChecklist) {
+    scanForLeaks(t2tChecklist, "Basic T2T checklist");
+  }
+
   return {
     manifest,
     boundaryNotices,
     lowConfidencePointers,
+    migrationMode,
+    t2tChecklist,
   };
 }
 
@@ -438,7 +509,13 @@ export async function sha256Hex(text) {
  * Serialize manifest with LF line endings and generate its matching avd-target-approval/v1 payload.
  */
 export async function buildManifestAndApproval(c11, intake, measuredUsage = null, options = {}) {
-  const { manifest, boundaryNotices, lowConfidencePointers } = buildBaselineTargetState(
+  const {
+    manifest,
+    boundaryNotices,
+    lowConfidencePointers,
+    migrationMode,
+    t2tChecklist,
+  } = buildBaselineTargetState(
     c11,
     intake,
     measuredUsage,
@@ -455,6 +532,7 @@ export async function buildManifestAndApproval(c11, intake, measuredUsage = null
     acceptLowConfidence: [...new Set(lowConfidencePointers)].sort(),
   };
   const approvalJson = JSON.stringify(approval, null, 2) + "\n";
+  const t2tChecklistJson = t2tChecklist ? JSON.stringify(t2tChecklist, null, 2) + "\n" : null;
 
   return {
     manifest,
@@ -463,6 +541,9 @@ export async function buildManifestAndApproval(c11, intake, measuredUsage = null
     approvalJson,
     boundaryNotices,
     lowConfidencePointers,
+    migrationMode,
+    t2tChecklist,
+    t2tChecklistJson,
   };
 }
 
@@ -578,6 +659,38 @@ export const SAMPLE_PRESETS = Object.freeze({
       identityConstraints: "entra-only",
       workingHours: {
         timeZone: "America/Chicago",
+        start: "08:00",
+        end: "18:00",
+      },
+    },
+    measuredUsage: null,
+  },
+  basicT2tEntra: {
+    label: "Basic Tenant-to-Tenant (T2T) Single-Pool Cutover (Source -> Destination Directory)",
+    migrationMode: "basic-t2t",
+    c11: {
+      schema: "avd-current-state-facts/v1",
+      estate: "est-7270ba51",
+      generatedUtc: "2026-11-11T12:00:00Z",
+      hostPools: [
+        {
+          id: "hp-7270ba51",
+          type: "Pooled",
+          preferredAppGroupType: "Desktop",
+          assignedUsers: 120,
+          sessionHosts: 6,
+        },
+      ],
+    },
+    intake: {
+      schema: "avd-estate-intake/v1",
+      estate: "est-7270ba51",
+      answeredOn: "2026-11-11",
+      preferredRegions: ["eastus2"],
+      existingHub: "none",
+      identityConstraints: "ad-ds-required",
+      workingHours: {
+        timeZone: "America/New_York",
         start: "08:00",
         end: "18:00",
       },

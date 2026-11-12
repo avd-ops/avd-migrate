@@ -25,7 +25,11 @@ param(
     [string]$OutputDirectory,
 
     [Parameter(Mandatory = $false)]
-    [string]$GeneratedUtc = '2026-11-11T12:00:00Z'
+    [string]$GeneratedUtc = '2026-11-11T12:00:00Z',
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('SameTenant', 'BasicTenantToTenant')]
+    [string]$MigrationMode = 'SameTenant'
 )
 
 Set-StrictMode -Version Latest
@@ -268,7 +272,13 @@ $profileQuotaGiB = [Math]::Max(100, [Math]::Min(102400, $rawQuotaGiB))
 $monthlyEstimate = [Math]::Round(($cappedHosts * $vmRate) + ($profileQuotaGiB * 0.16), 2)
 
 $identityVal = 'EntraOnly'
-if ($intake.PSObject.Properties['identityConstraints'] -and ([string]$intake.identityConstraints -eq 'ad-ds-required')) {
+if ($MigrationMode -eq 'BasicTenantToTenant') {
+    if ($intake.PSObject.Properties['identityConstraints'] -and ([string]$intake.identityConstraints -eq 'ad-ds-required')) {
+        $boundaryNotices.Add('Basic Tenant-to-Tenant (T2T) mode targets a clean EntraOnly pool (tp-01) in the destination Entra directory; source ad-ds-required constraint was flattened.')
+    }
+    $boundaryNotices.Add('Basic Tenant-to-Tenant (T2T) mode sizes a single destination pool (tp-01). User/group provisioning in the destination Entra directory, fresh FSLogix profile initialization (or OneDrive KFM), and supplying destination Group Object IDs to ConvertFrom-AvdTargetState.ps1 are manual steps in t2t-checklist.json.')
+}
+elseif ($intake.PSObject.Properties['identityConstraints'] -and ([string]$intake.identityConstraints -eq 'ad-ds-required')) {
     $identityVal = 'HybridADDS'
 }
 
@@ -496,6 +506,53 @@ if (-not $approvalJson.EndsWith("`n")) {
 $approvalBytes = [System.Text.Encoding]::UTF8.GetBytes($approvalJson)
 $approvalPath = Join-Path $OutputDirectory 'manifest.approval.json'
 [System.IO.File]::WriteAllBytes($approvalPath, $approvalBytes)
+
+if ($MigrationMode -eq 'BasicTenantToTenant') {
+    $t2tChecklist = [ordered]@{
+        schema          = 'avd-t2t-basic-checklist/v1'
+        estate          = $estateId
+        engagement      = $engagementId
+        generatedUtc    = $GeneratedUtc
+        migrationMode   = 'basic-t2t'
+        targetPoolId    = 'tp-01'
+        users           = $totalUsers
+        profileMode     = 'fresh-fslogix-or-kfm'
+        boundaryNotices = @($boundaryNotices)
+        steps           = @(
+            [ordered]@{
+                phase  = 'pre-cutover'
+                id     = 't2t-01-identities'
+                title  = 'Provision users and AVD security groups in the destination Entra directory'
+                detail = 'Create or invite user accounts in the destination tenant and record the destination AvdUsersGroupObjectId and AvdAdminsGroupObjectId.'
+            },
+            [ordered]@{
+                phase  = 'pre-cutover'
+                id     = 't2t-02-deploy-stamp'
+                title  = 'Render avd.bicepparam and deploy the destination single-pool landing zone'
+                detail = 'Run ConvertFrom-AvdTargetState.ps1 with the destination SubscriptionId, AvdUsersGroupObjectId, and AvdAdminsGroupObjectId.'
+            },
+            [ordered]@{
+                phase  = 'cutover'
+                id     = 't2t-03-profile-kfm'
+                title  = 'Initialize fresh FSLogix profile containers in the destination tenant'
+                detail = 'Basic T2T creates a clean FSLogix VHD(X) container per destination user SID on first sign-in (use OneDrive Known Folder Move to carry user documents across directories; offline VHDX SID re-ACL is not performed in basic mode).'
+            },
+            [ordered]@{
+                phase  = 'post-cutover'
+                id     = 't2t-04-drain-source'
+                title  = 'Drain source host pool sessions after destination sign-in verification'
+                detail = 'Set allowNewSession=false on source host pool(s) once users confirm access to tp-01 in the destination tenant.'
+            }
+        )
+    }
+    $t2tJson = ($t2tChecklist | ConvertTo-Json -Depth 8) -replace "`r`n", "`n"
+    if (-not $t2tJson.EndsWith("`n")) {
+        $t2tJson += "`n"
+    }
+    Test-NoSensitiveLeak -RawText $t2tJson -ContextName 'Basic T2T checklist'
+    $t2tPath = Join-Path $OutputDirectory 't2t-checklist.json'
+    [System.IO.File]::WriteAllBytes($t2tPath, [System.Text.Encoding]::UTF8.GetBytes($t2tJson))
+}
 
 Write-Host "RESULT PASS designed $estateId -> tp-01 ($cappedHosts hosts, `$$monthlyEstimate/mo, sha256=$manifestSha)"
 foreach ($notice in $boundaryNotices) {

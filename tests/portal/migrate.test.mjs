@@ -63,6 +63,27 @@ test("multi-pool mixed estate auto-merges into single tp-01 Pooled Desktop pool 
   assert.ok(res.approval.acceptLowConfidence.includes("/hostPools/0/vmSize"));
 });
 
+test("basic-t2t mode flattens identity to EntraOnly and emits t2tChecklist with 4 manual runbook steps", async () => {
+  const { c11, intake } = SAMPLE_PRESETS.basicT2tEntra;
+  const res = await buildManifestAndApproval(c11, intake, null, {
+    migrationMode: "basic-t2t",
+  });
+
+  assert.equal(res.migrationMode, "basic-t2t");
+  assert.equal(res.manifest.identity.value, "EntraOnly");
+  assert.equal(res.manifest.target.renderer, "lz-cloudnative");
+
+  const noticeCodes = res.boundaryNotices.map((n) => n.code);
+  assert.ok(noticeCodes.includes("basic-t2t-identity-flattened"));
+  assert.ok(noticeCodes.includes("basic-t2t-mode"));
+
+  assert.ok(res.t2tChecklist);
+  assert.equal(res.t2tChecklist.schema, "avd-t2t-basic-checklist/v1");
+  assert.equal(res.t2tChecklist.profileMode, "fresh-fslogix-or-kfm");
+  assert.equal(res.t2tChecklist.steps.length, 4);
+  assert.ok(res.t2tChecklistJson.includes("avd-t2t-basic-checklist/v1"));
+});
+
 test("enforces 180-host single-pool ceiling when source demand exceeds 180 hosts", () => {
   const c11 = {
     schema: "avd-current-state-facts/v1",

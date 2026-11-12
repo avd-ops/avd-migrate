@@ -24,6 +24,7 @@ And emits a schema-valid **`C14` (`avd-target-state/v1`)** manifest (`manifest.j
 
 - **1 target host pool (`tp-01`, `Pooled`, `Desktop`)** — if `C11` contains multiple source host pools or mixed delivery types (`Personal`, `RemoteApp`, `Gpu`), `avd-migrate` merges all source user counts and concurrency into `tp-01` and records transparent `boundaryNotices` describing what was flattened.
 - **Up to 180 session hosts and 1,000 concurrent sessions** — capped at the single-pool landing-zone ceiling (`1` subscription, `1` Azure Files Premium profile share).
+- **Basic Tenant-to-Tenant (`T2T`) mode (`-MigrationMode BasicTenantToTenant` / `basic-t2t`)** — sizes a single clean-slate `EntraOnly` target pool (`tp-01`) in a destination Entra directory and emits `t2t-checklist.json` (`avd-t2t-basic-checklist/v1`) covering manual user/group provisioning, fresh FSLogix profile creation (or OneDrive Known Folder Move), and destination-tenant `.bicepparam` binding.
 - **100% client-side / offline execution** — the browser portal (`site/portal/`) enforces `connect-src 'none'` and never transmits uploaded files over the network. The companion PowerShell CLI (`ConvertTo-AvdTargetState.ps1`) runs completely offline.
 
 ## Quick Start (PowerShell 7.2+)
