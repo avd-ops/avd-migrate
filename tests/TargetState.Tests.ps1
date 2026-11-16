@@ -240,9 +240,11 @@ Describe 'ConvertTo-AvdTargetState.ps1 (avd-migrate single-pool baseline designe
             Test-Path -LiteralPath $lzaPath | Should -BeTrue
             $lzaRaw = Get-Content -LiteralPath $lzaPath -Raw -Encoding UTF8
             $lzaRaw | Should -Match 'BOUNDARY NOTICE:'
-            $lzaRaw | Should -Match "using 'main\.bicep'"
+            $lzaRaw | Should -Match "using 'deploy-baseline\.bicep'"
             $lzaRaw | Should -Match "param avdIdentityServiceProvider = 'ADDS'"
-            $lzaRaw | Should -Match "param deploymentLocation = 'eastus2'"
+            $lzaRaw | Should -Match "param avdSessionHostLocation = 'eastus2'"
+            $lzaRaw | Should -Match 'param avdDeploySessionHostsCount = 3'
+            $lzaRaw | Should -Match 'param fslogixFileShareQuotaSize = 3'
         }
         finally {
             Remove-Item -LiteralPath $tmpDir -Recurse -Force -ErrorAction SilentlyContinue

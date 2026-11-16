@@ -514,9 +514,11 @@ export function buildLzaBicepparamStarter(manifest) {
   const region = manifest.region?.value || "<azure-region>";
   const identityMode = manifest.identity?.value === "EntraOnly" ? "EntraID" : "ADDS";
   const lb = hp.loadBalancer?.value || "DepthFirst";
+  const fslogixTiB = Math.max(1, Math.ceil((hp.profileQuotaGiB?.value || 1024) / 1024));
 
   const lines = [
     "// Optional Microsoft AVD Landing Zone Accelerator (Azure/avdaccelerator) starter parameters",
+    "// Target template: workload/bicep/deploy-baseline.bicep",
     `// Generated from C14 (${manifest.schema}) for estate ${manifest.estate} (${hp.id})`,
     "// Personal project, not for production. Provided as is; not affiliated with Microsoft.",
     "//",
@@ -526,20 +528,23 @@ export function buildLzaBicepparamStarter(manifest) {
     "// - Replace all <placeholder> values before deploying with Azure/avdaccelerator.",
     "// - Post-deploy, run avd-current-state -> avd-second-brain -> avd-remediate / avd-swarm via C11.",
     "",
-    "using 'main.bicep'",
+    "using 'deploy-baseline.bicep'",
     "",
-    `param deploymentLocation = '${region}'`,
+    `param avdSessionHostLocation = '${region}'`,
+    `param avdManagementPlaneLocation = '${region}'`,
     "param avdWorkloadSubsId = '<avd-subscription-id>'",
-    "param avdDeploySessionHosts = true",
-    `param avdSessionHostCount = ${hp.hosts.value}`,
-    `param avdSessionHostSize = '${hp.vmSize.value}'`,
-    "param avdHostPoolType = 'Pooled'",
-    `param avdHostPoolLoadBalancerType = '${lb}'`,
-    `param avdHostPoolMaxSessionLimit = ${hp.maxSessions.value}`,
     `param avdIdentityServiceProvider = '${identityMode}'`,
-    `param avdFslogixStorageQuotaGiB = ${hp.profileQuotaGiB.value}`,
-    "param avdVnetAddressPrefixes = ['<avd-vnet-address-prefix>']",
-    "param avdSecurityPrincipalObjectIds = ['<avd-users-group-object-id>']",
+    "param avdSecurityGroups = ['<avd-users-group-object-id>']",
+    "param avdHostPoolType = 'Pooled'",
+    "param hostPoolPreferredAppGroupType = 'Desktop'",
+    `param avdHostPoolLoadBalancerType = '${lb}'`,
+    `param hostPoolMaxSessions = ${hp.maxSessions.value}`,
+    "param avdDeploySessionHosts = true",
+    `param avdDeploySessionHostsCount = ${hp.hosts.value}`,
+    `param avdSessionHostsSize = '${hp.vmSize.value}'`,
+    "param createAvdFslogixDeployment = true",
+    `param fslogixFileShareQuotaSize = ${fslogixTiB}`,
+    "param avdVnetworkAddressPrefixes = '<avd-vnet-address-prefix>'",
     "",
   ];
   const text = lines.join("\n");

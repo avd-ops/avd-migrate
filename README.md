@@ -59,6 +59,24 @@ Then render the `.bicepparam` file in [`avd-landing-zone`](https://github.com/av
     -OutputPath ./avd.bicepparam
 ```
 
+## Optional Microsoft AVD LZA Export & Post-Deploy Day-2 Loop
+
+For hybrid AD DS or brownfield estates targeting Microsoft's [Azure Virtual Desktop Landing Zone Accelerator (`Azure/avdaccelerator`)](https://github.com/Azure/avdaccelerator) instead of `avd-landing-zone`, pass `-ExportLzaBicepparam` (or use **Download `lza.starter.bicepparam` (Optional LZA)** in the portal):
+
+```powershell
+./ConvertTo-AvdTargetState.ps1 `
+    -CurrentStatePath ./current-state-facts.json `
+    -IntakePath ./intake.json `
+    -OutputDirectory ./out `
+    -ExportLzaBicepparam
+```
+
+This emits `./out/lza.starter.bicepparam` targeting `workload/bicep/deploy-baseline.bicep` with an explicit boundary notice (AD DS prerequisites, existing hub/subnet IDs, and LZA teardown stay owned by `Azure/avdaccelerator`). Once deployed—whether via LZA or another brownfield path—the rest of the `avd-ops` stack layers on top through redacted `C11` contracts:
+
+1. **Collect (`avd-current-state`):** Run `avd_current_state_collector.ps1` (with `-Planes` scoped to the planes you have read access to) to emit redacted `C11` facts.
+2. **Remember & reason (`avd-second-brain`):** Feed the `C11` snapshot into `avd-second-brain` (and keep unredacted estate context in your private vault).
+3. **Triage & operate (`avd-remediate` / `avd-swarm`):** Run read-only diagnostics and propose human-approved `C24` / `C9` remediation plans on top of the LZA or brownfield estate.
+
 ## Verification Checks
 
 ```bash
