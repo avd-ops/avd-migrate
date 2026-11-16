@@ -175,3 +175,13 @@ test("portal HTML enforces connect-src 'none' CSP and design-system.lock.json ha
     assert.equal(actualHash, expectedHash, `SHA-256 mismatch for ${relPath}`);
   }
 });
+
+test("buildManifestAndApproval emits optional lzaBicepparamStarter with boundary notice and no leaks", async () => {
+  const preset = SAMPLE_PRESETS.singlePoolEntra;
+  const res = await buildManifestAndApproval(preset.c11, preset.intake, preset.measuredUsage);
+  assert.ok(res.lzaBicepparamStarter.includes("BOUNDARY NOTICE:"));
+  assert.ok(res.lzaBicepparamStarter.includes("using 'main.bicep'"));
+  assert.ok(res.lzaBicepparamStarter.includes("param avdIdentityServiceProvider = 'EntraID'"));
+  assert.ok(res.lzaBicepparamStarter.includes(`param avdSessionHostCount = ${res.manifest.hostPools[0].hosts.value}`));
+  assert.doesNotThrow(() => scanForLeaks(res.lzaBicepparamStarter, "lza starter"));
+});
