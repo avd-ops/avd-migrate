@@ -16,7 +16,17 @@ Part of [avd-ops](https://avd-ops.dev/), the open toolkit for Azure Virtual Desk
 - **`C19` (`avd-estate-intake/v1`)** — operator intake answers exported by `assess.avd-ops.dev`.
 - **`C27` (`avd-measured-usage/v1`, optional)** — 28-day host-pool and user-cohort percentiles exported by `Export-AvdInsightsUsage.ps1`.
 
-And emits a schema-valid **`C14` (`avd-target-state/v1`)** manifest (`manifest.json`) plus **`avd-target-approval/v1`** (`manifest.approval.json`) ready for [`avd-landing-zone/scripts/ConvertFrom-AvdTargetState.ps1`](https://github.com/avd-ops/avd-landing-zone).
+And emits a schema-valid **`C14` (`avd-target-state/v1`)** manifest (`manifest.json`) plus **`avd-target-approval/v1`** (`manifest.approval.json`) ready for [`avd-landing-zone/scripts/ConvertFrom-AvdTargetState.ps1`](https://github.com/avd-ops/avd-landing-zone#readme).
+
+## How it connects
+
+| Direction | Repo | Relationship |
+|---|---|---|
+| Front door | [avd-ops](https://github.com/avd-ops/avd-ops#readme) | Overview, [repo page](https://avd-ops.dev/docs/repos/avd-migrate.html), and [portal](https://avd-ops.app/migrate/) |
+| Upstream | [avd-current-state](https://github.com/avd-ops/avd-current-state#readme) | Supplies `C11` (`avd-current-state-facts/v1`) |
+| Upstream | [avd-assess](https://github.com/avd-ops/avd-assess#readme) | Supplies `C19` intake and `C27` measured usage schemas |
+| Downstream | [avd-landing-zone](https://github.com/avd-ops/avd-landing-zone#readme) | Consumes `C14` (`manifest.json`) via `ConvertFrom-AvdTargetState.ps1` |
+| Downstream | [avd-azure](https://github.com/avd-ops/avd-azure#readme) | Target Azure Bicep infrastructure for the sized baseline pool |
 
 ## Single-Pool Baseline Scope
 
