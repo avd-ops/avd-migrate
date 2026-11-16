@@ -559,8 +559,10 @@ if ($MigrationMode -eq 'BasicTenantToTenant') {
 
 if ($ExportLzaBicepparam) {
     $lzaIdentity = if ($identityVal -eq 'EntraOnly') { 'EntraID' } else { 'ADDS' }
+    $fslogixTiB = [Math]::Max(1, [int][Math]::Ceiling($profileQuotaGiB / 1024.0))
     $lzaLines = @(
         '// Optional Microsoft AVD Landing Zone Accelerator (Azure/avdaccelerator) starter parameters',
+        '// Target template: workload/bicep/deploy-baseline.bicep',
         "// Generated from C14 (avd-target-state/v1) for estate $estateId (tp-01)",
         '// Personal project, not for production. Provided as is; not affiliated with Microsoft.',
         '//',
@@ -570,20 +572,23 @@ if ($ExportLzaBicepparam) {
         '// - Replace all <placeholder> values before deploying with Azure/avdaccelerator.',
         '// - Post-deploy, run avd-current-state -> avd-second-brain -> avd-remediate / avd-swarm via C11.',
         '',
-        "using 'main.bicep'",
+        "using 'deploy-baseline.bicep'",
         '',
-        "param deploymentLocation = '$regionVal'",
+        "param avdSessionHostLocation = '$regionVal'",
+        "param avdManagementPlaneLocation = '$regionVal'",
         "param avdWorkloadSubsId = '<avd-subscription-id>'",
-        'param avdDeploySessionHosts = true',
-        "param avdSessionHostCount = $cappedHosts",
-        "param avdSessionHostSize = '$vmSize'",
-        "param avdHostPoolType = 'Pooled'",
-        "param avdHostPoolLoadBalancerType = 'DepthFirst'",
-        "param avdHostPoolMaxSessionLimit = $maxSessions",
         "param avdIdentityServiceProvider = '$lzaIdentity'",
-        "param avdFslogixStorageQuotaGiB = $profileQuotaGiB",
-        "param avdVnetAddressPrefixes = ['<avd-vnet-address-prefix>']",
-        "param avdSecurityPrincipalObjectIds = ['<avd-users-group-object-id>']",
+        "param avdSecurityGroups = ['<avd-users-group-object-id>']",
+        "param avdHostPoolType = 'Pooled'",
+        "param hostPoolPreferredAppGroupType = 'Desktop'",
+        "param avdHostPoolLoadBalancerType = 'DepthFirst'",
+        "param hostPoolMaxSessions = $maxSessions",
+        'param avdDeploySessionHosts = true',
+        "param avdDeploySessionHostsCount = $cappedHosts",
+        "param avdSessionHostsSize = '$vmSize'",
+        'param createAvdFslogixDeployment = true',
+        "param fslogixFileShareQuotaSize = $fslogixTiB",
+        "param avdVnetworkAddressPrefixes = '<avd-vnet-address-prefix>'",
         ''
     )
     $lzaText = ($lzaLines -join "`n")

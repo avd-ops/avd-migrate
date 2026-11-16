@@ -180,8 +180,10 @@ test("buildManifestAndApproval emits optional lzaBicepparamStarter with boundary
   const preset = SAMPLE_PRESETS.singlePoolEntra;
   const res = await buildManifestAndApproval(preset.c11, preset.intake, preset.measuredUsage);
   assert.ok(res.lzaBicepparamStarter.includes("BOUNDARY NOTICE:"));
-  assert.ok(res.lzaBicepparamStarter.includes("using 'main.bicep'"));
+  assert.ok(res.lzaBicepparamStarter.includes("using 'deploy-baseline.bicep'"));
   assert.ok(res.lzaBicepparamStarter.includes("param avdIdentityServiceProvider = 'EntraID'"));
-  assert.ok(res.lzaBicepparamStarter.includes(`param avdSessionHostCount = ${res.manifest.hostPools[0].hosts.value}`));
+  assert.ok(res.lzaBicepparamStarter.includes(`param avdDeploySessionHostsCount = ${res.manifest.hostPools[0].hosts.value}`));
+  const expectedTiB = Math.max(1, Math.ceil(res.manifest.hostPools[0].profileQuotaGiB.value / 1024));
+  assert.ok(res.lzaBicepparamStarter.includes(`param fslogixFileShareQuotaSize = ${expectedTiB}`));
   assert.doesNotThrow(() => scanForLeaks(res.lzaBicepparamStarter, "lza starter"));
 });
