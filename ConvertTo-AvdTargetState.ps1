@@ -29,7 +29,10 @@ param(
 
     [Parameter(Mandatory = $false)]
     [ValidateSet('SameTenant', 'BasicTenantToTenant')]
-    [string]$MigrationMode = 'SameTenant'
+    [string]$MigrationMode = 'SameTenant',
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ExportLzaBicepparam
 )
 
 Set-StrictMode -Version Latest
@@ -552,6 +555,41 @@ if ($MigrationMode -eq 'BasicTenantToTenant') {
     Test-NoSensitiveLeak -RawText $t2tJson -ContextName 'Basic T2T checklist'
     $t2tPath = Join-Path $OutputDirectory 't2t-checklist.json'
     [System.IO.File]::WriteAllBytes($t2tPath, [System.Text.Encoding]::UTF8.GetBytes($t2tJson))
+}
+
+if ($ExportLzaBicepparam) {
+    $lzaIdentity = if ($identityVal -eq 'EntraOnly') { 'EntraID' } else { 'ADDS' }
+    $lzaLines = @(
+        '// Optional Microsoft AVD Landing Zone Accelerator (Azure/avdaccelerator) starter parameters',
+        "// Generated from C14 (avd-target-state/v1) for estate $estateId (tp-01)",
+        '// Personal project, not for production. Provided as is; not affiliated with Microsoft.',
+        '//',
+        '// BOUNDARY NOTICE:',
+        '// - AD DS / hybrid domain-join prerequisites, existing hub/subnet IDs, and LZA teardown are',
+        '//   owned by Azure/avdaccelerator (outside avd-landing-zone and avd-azure).',
+        '// - Replace all <placeholder> values before deploying with Azure/avdaccelerator.',
+        '// - Post-deploy, run avd-current-state -> avd-second-brain -> avd-remediate / avd-swarm via C11.',
+        '',
+        "using 'main.bicep'",
+        '',
+        "param deploymentLocation = '$regionVal'",
+        "param avdWorkloadSubsId = '<avd-subscription-id>'",
+        'param avdDeploySessionHosts = true',
+        "param avdSessionHostCount = $cappedHosts",
+        "param avdSessionHostSize = '$vmSize'",
+        "param avdHostPoolType = 'Pooled'",
+        "param avdHostPoolLoadBalancerType = 'DepthFirst'",
+        "param avdHostPoolMaxSessionLimit = $maxSessions",
+        "param avdIdentityServiceProvider = '$lzaIdentity'",
+        "param avdFslogixStorageQuotaGiB = $profileQuotaGiB",
+        "param avdVnetAddressPrefixes = ['<avd-vnet-address-prefix>']",
+        "param avdSecurityPrincipalObjectIds = ['<avd-users-group-object-id>']",
+        ''
+    )
+    $lzaText = ($lzaLines -join "`n")
+    Test-NoSensitiveLeak -RawText $lzaText -ContextName 'LZA bicepparam starter'
+    $lzaPath = Join-Path $OutputDirectory 'lza.starter.bicepparam'
+    [System.IO.File]::WriteAllBytes($lzaPath, [System.Text.Encoding]::UTF8.GetBytes($lzaText))
 }
 
 Write-Host "RESULT PASS designed $estateId -> tp-01 ($cappedHosts hosts, `$$monthlyEstimate/mo, sha256=$manifestSha)"

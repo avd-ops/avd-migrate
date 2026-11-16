@@ -201,4 +201,51 @@ Describe 'ConvertTo-AvdTargetState.ps1 (avd-migrate single-pool baseline designe
             Remove-Item -LiteralPath $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+
+    It 'Writes optional lza.starter.bicepparam with boundary notice when -ExportLzaBicepparam is set' {
+        $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "avd-migrate-lza-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
+        New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
+        try {
+            $c11Path = Join-Path $tmpDir 'c11.json'
+            $intakePath = Join-Path $tmpDir 'intake.json'
+            $outDir = Join-Path $tmpDir 'out'
+
+            @{
+                schema       = 'avd-current-state-facts/v1'
+                estate       = 'est-7270ba51'
+                generatedUtc = '2026-11-11T12:00:00Z'
+                hostPools    = @(
+                    @{
+                        id                    = 'hp-aa11bb22'
+                        type                  = 'Pooled'
+                        preferredAppGroupType = 'Desktop'
+                        assignedUsers         = 80
+                        sessionHosts          = 4
+                    }
+                )
+            } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $c11Path -Encoding UTF8
+
+            @{
+                schema              = 'avd-estate-intake/v1'
+                estate              = 'est-7270ba51'
+                answeredOn          = '2026-11-11'
+                preferredRegions    = @('eastus2')
+                existingHub         = 'none'
+                identityConstraints = 'ad-ds-required'
+            } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $intakePath -Encoding UTF8
+
+            & $script:ScriptPath -CurrentStatePath $c11Path -IntakePath $intakePath -OutputDirectory $outDir -ExportLzaBicepparam
+
+            $lzaPath = Join-Path $outDir 'lza.starter.bicepparam'
+            Test-Path -LiteralPath $lzaPath | Should -BeTrue
+            $lzaRaw = Get-Content -LiteralPath $lzaPath -Raw -Encoding UTF8
+            $lzaRaw | Should -Match 'BOUNDARY NOTICE:'
+            $lzaRaw | Should -Match "using 'main\.bicep'"
+            $lzaRaw | Should -Match "param avdIdentityServiceProvider = 'ADDS'"
+            $lzaRaw | Should -Match "param deploymentLocation = 'eastus2'"
+        }
+        finally {
+            Remove-Item -LiteralPath $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }

@@ -34,6 +34,7 @@ async function renderCurrentState() {
   const btnManifest = document.getElementById("btn-download-manifest");
   const btnApproval = document.getElementById("btn-download-approval");
   const btnT2t = document.getElementById("btn-download-t2t-checklist");
+  const btnLza = document.getElementById("btn-download-lza-bicepparam");
 
   if (!state.c11 || !state.intake) {
     banner.textContent = "Waiting for both C11 (current-state-facts.json) and C19 (intake.json).";
@@ -93,12 +94,18 @@ async function renderCurrentState() {
     if (btnT2t) {
       btnT2t.disabled = !res.t2tChecklistJson;
     }
+    if (btnLza) {
+      btnLza.disabled = !res.lzaBicepparamStarter;
+    }
   } catch (err) {
     banner.textContent = `ERROR: ${err.message}`;
     btnManifest.disabled = true;
     btnApproval.disabled = true;
     if (btnT2t) {
       btnT2t.disabled = true;
+    }
+    if (btnLza) {
+      btnLza.disabled = true;
     }
   }
 }
@@ -168,6 +175,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-download-t2t-checklist")?.addEventListener("click", () => {
     if (state.lastResult?.t2tChecklistJson) {
       downloadJsonFile("t2t-checklist.json", state.lastResult.t2tChecklistJson);
+    }
+  });
+
+  document.getElementById("btn-download-lza-bicepparam")?.addEventListener("click", () => {
+    if (state.lastResult?.lzaBicepparamStarter) {
+      downloadJsonFile("lza.starter.bicepparam", state.lastResult.lzaBicepparamStarter);
     }
   });
 });

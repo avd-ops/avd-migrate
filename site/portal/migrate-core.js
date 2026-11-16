@@ -506,6 +506,48 @@ export async function sha256Hex(text) {
 }
 
 /**
+ * Build an optional Microsoft AVD Landing Zone Accelerator (Azure/avdaccelerator) .bicepparam
+ * starter file from a C14 manifest, with an explicit lifecycle boundary notice.
+ */
+export function buildLzaBicepparamStarter(manifest) {
+  const hp = manifest.hostPools[0];
+  const region = manifest.region?.value || "<azure-region>";
+  const identityMode = manifest.identity?.value === "EntraOnly" ? "EntraID" : "ADDS";
+  const lb = hp.loadBalancer?.value || "DepthFirst";
+
+  const lines = [
+    "// Optional Microsoft AVD Landing Zone Accelerator (Azure/avdaccelerator) starter parameters",
+    `// Generated from C14 (${manifest.schema}) for estate ${manifest.estate} (${hp.id})`,
+    "// Personal project, not for production. Provided as is; not affiliated with Microsoft.",
+    "//",
+    "// BOUNDARY NOTICE:",
+    "// - AD DS / hybrid domain-join prerequisites, existing hub/subnet IDs, and LZA teardown are",
+    "//   owned by Azure/avdaccelerator (outside avd-landing-zone and avd-azure).",
+    "// - Replace all <placeholder> values before deploying with Azure/avdaccelerator.",
+    "// - Post-deploy, run avd-current-state -> avd-second-brain -> avd-remediate / avd-swarm via C11.",
+    "",
+    "using 'main.bicep'",
+    "",
+    `param deploymentLocation = '${region}'`,
+    "param avdWorkloadSubsId = '<avd-subscription-id>'",
+    "param avdDeploySessionHosts = true",
+    `param avdSessionHostCount = ${hp.hosts.value}`,
+    `param avdSessionHostSize = '${hp.vmSize.value}'`,
+    "param avdHostPoolType = 'Pooled'",
+    `param avdHostPoolLoadBalancerType = '${lb}'`,
+    `param avdHostPoolMaxSessionLimit = ${hp.maxSessions.value}`,
+    `param avdIdentityServiceProvider = '${identityMode}'`,
+    `param avdFslogixStorageQuotaGiB = ${hp.profileQuotaGiB.value}`,
+    "param avdVnetAddressPrefixes = ['<avd-vnet-address-prefix>']",
+    "param avdSecurityPrincipalObjectIds = ['<avd-users-group-object-id>']",
+    "",
+  ];
+  const text = lines.join("\n");
+  scanForLeaks(text, "LZA bicepparam starter");
+  return text;
+}
+
+/**
  * Serialize manifest with LF line endings and generate its matching avd-target-approval/v1 payload.
  */
 export async function buildManifestAndApproval(c11, intake, measuredUsage = null, options = {}) {
@@ -533,6 +575,7 @@ export async function buildManifestAndApproval(c11, intake, measuredUsage = null
   };
   const approvalJson = JSON.stringify(approval, null, 2) + "\n";
   const t2tChecklistJson = t2tChecklist ? JSON.stringify(t2tChecklist, null, 2) + "\n" : null;
+  const lzaBicepparamStarter = buildLzaBicepparamStarter(manifest);
 
   return {
     manifest,
@@ -544,6 +587,7 @@ export async function buildManifestAndApproval(c11, intake, measuredUsage = null
     migrationMode,
     t2tChecklist,
     t2tChecklistJson,
+    lzaBicepparamStarter,
   };
 }
 
