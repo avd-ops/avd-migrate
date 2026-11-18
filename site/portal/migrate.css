@@ -1,0 +1,152 @@
+/* Page-specific styles for avd-migrate portal, matching the Deploy and Assess wizard layout. */
+.shell main { padding-block: 0; }
+.portal header.bar .iconbtn,
+.portal header.bar .iconbtn:hover:not(:disabled) {
+  padding: 0;
+  background: transparent;
+  color: var(--shell-fg);
+  border-color: var(--shell-line);
+}
+.portal header.bar .iconbtn:hover:not(:disabled) {
+  background: var(--shell-hover);
+}
+.portal button.wz-tool,
+.portal button.wz-tool:hover:not(:disabled) {
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+.portal button.wz-tool:hover:not(:disabled),
+.portal button.wz-tool[aria-expanded="true"] {
+  background: var(--sunken);
+  color: var(--fg);
+}
+.wz-main { min-width: 0; }
+html {
+  scroll-padding-top: calc(var(--bar) + env(safe-area-inset-top, 0px) + 16px);
+  scroll-padding-bottom: 96px;
+}
+
+/* Form & preset controls */
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+.mode-row {
+  margin: 0 0 var(--space-4);
+  max-width: 26rem;
+}
+.drop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+.portal .filedrop.loaded {
+  border-style: solid;
+  border-color: var(--good);
+  background: var(--good-soft);
+}
+.portal .filedrop .file:empty {
+  display: none;
+}
+
+/* Status reply */
+#status-reply {
+  margin-top: var(--space-3);
+}
+#status-reply p {
+  margin: 0;
+}
+
+/* Review stage: boundary notices + KPI cards + KV table */
+.notice-panel {
+  border: 1px solid var(--caution);
+  border-left: 4px solid var(--caution);
+  border-radius: var(--radius-sm);
+  background: var(--caution-soft);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+.notice-panel h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--fg);
+}
+.notice-panel ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.notice-panel li + li {
+  margin-top: var(--space-1);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow);
+}
+.kpi-label {
+  font: 600 var(--fs-xs) var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+}
+.kpi-val {
+  font: 700 1.45rem/1.15 var(--display);
+  color: var(--fg);
+  margin-bottom: 2px;
+}
+.kpi-sub {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+/* Export stage */
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-5);
+}
+.portal .term {
+  margin: 0 0 var(--space-4);
+}
+.portal details.more pre {
+  margin-top: var(--space-2);
+  max-block-size: 24rem;
+  overflow: auto;
+}
+
+/* Footer below the wizard */
+.after {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding-top: 24px;
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+}
+@media (min-width: 64.01rem) {
+  .after {
+    padding-left: calc(max(var(--gutter), env(safe-area-inset-left, 0px)) + 14rem + var(--space-6));
+  }
+}
+.credit {
+  margin: 0;
+  padding: 0 0 calc(24px + env(safe-area-inset-bottom, 0px));
+  font: 600 .8rem var(--mono);
+  letter-spacing: .04em;
+  color: var(--fg);
+}
+.credit a { color: inherit; }
+.portal footer.disclaimer { padding-bottom: 10px; }

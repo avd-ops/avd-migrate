@@ -5,14 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <title>avd-migrate &mdash; Single-Pool Target-State Baseline Designer</title>
+<meta name="description" content="100% client-side single-pool target-state baseline designer for Azure Virtual Desktop. Drop C11, C19, and optional C27 JSON files to emit a signed C14 manifest.">
 <link rel="icon" href="../assets/brand/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/avd-ops.css">
 <link rel="stylesheet" href="../assets/avd-ops-portal.css">
 <link rel="stylesheet" href="../assets/avd-ops-shell.css">
+<link rel="stylesheet" href="./migrate.css">
 <script src="../assets/theme.js" defer></script>
 <script type="module" src="./migrate-app.js"></script>
 </head>
-<body class="shell portal">
+<body class="portal shell">
 <a class="skip" href="#main">Skip to content</a>
 <header class="bar"><div class="bar-in"><a class="brand" href="https://avd-ops.dev/"><img class="mark" src="../assets/brand/mark.svg" alt="" width="44" height="44"><span class="name"><span class="word">avd-ops</span><span class="tag">Deploy quietly</span></span></a>
 <nav class="switcher" aria-label="avd-ops tools"><a href="https://avd-ops.dev/">Docs</a><a href="https://avd-ops.app/deploy/">Deploy</a><a href="https://avd-ops.app/assess/">Assess</a><a href="./" aria-current="page">Migrate</a><a href="https://avd-ops.app/status/">Status</a></nav>
@@ -21,66 +23,131 @@
 <li>Not affiliated with, endorsed by or supported by the author's employer, and not an official Microsoft product.</li>
 <li>Use a lab subscription and tenant.</li></ul></div></details>
 <div class="tools"><button class="iconbtn dev" type="button" aria-pressed="false" aria-label="Show contract and decision IDs (dev mode)" title="Show contract and decision IDs (dev mode)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5 3 10l3.5 3.5M13.5 6.5 17 10l-3.5 3.5M11.2 4.5 8.8 15.5"/></svg></button><button class="iconbtn theme" type="button" aria-label="Switch theme"><svg class="sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.5"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg><svg class="moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9Z"/></svg></button></div></div></header>
-<main id="main" class="wrap">
-  <header>
-    <h1>avd-migrate &mdash; Single-Pool Baseline Designer</h1>
-    <p>
-      100% client-side designer (`connect-src 'none'`). Drop pseudonymous <code>C11</code> (<code>avd-current-state-facts/v1</code>),
-      <code>C19</code> (<code>avd-estate-intake/v1</code>), and optional <code>C27</code> (<code>avd-measured-usage/v1</code>) JSON files
-      to size a single baseline Pooled Desktop pool (<code>tp-01</code>, up to 180 hosts) and download <code>manifest.json</code> +
-      <code>manifest.approval.json</code> for <code>avd-landing-zone</code>.
-    </p>
+
+<main id="main" class="wz-layout">
+  <header class="top wz-rail">
+    <div class="title">
+      <h1>AVD migration designer</h1>
+      <p class="purpose">Sizes one baseline pooled pool (<code>tp-01</code>) from current-state facts, entirely in your browser (<code>connect-src 'none'</code>).</p>
+    </div>
+    <ol class="wz-list" id="steps" aria-label="Migration designer steps">
+      <li><button type="button" class="step" data-step="0" aria-current="step"><span class="n">1</span><span>Load estate</span></button></li>
+      <li><button type="button" class="step" data-step="1" disabled><span class="n">2</span><span>Review baseline</span></button></li>
+      <li><button type="button" class="step" data-step="2" disabled><span class="n">3</span><span>Export &amp; hand off</span></button></li>
+    </ol>
+    <ol class="wz-progress" id="steps-bar" aria-label="Migration designer progress">
+      <li class="phase now" data-steps="3">
+        <span class="phase-name">Baseline design</span>
+        <div class="segs">
+          <button type="button" class="seg current" data-step="0" aria-label="Step 1: Load estate"></button>
+          <button type="button" class="seg" data-step="1" aria-label="Step 2: Review baseline" disabled></button>
+          <button type="button" class="seg" data-step="2" aria-label="Step 3: Export &amp; hand off" disabled></button>
+        </div>
+      </li>
+    </ol>
+    <div class="toplinks wz-tools">
+      <button type="button" class="wz-tool" id="btn-reset" title="Clear loaded files and reset">
+        <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8a5.5 5.5 0 1 0 1.4-3.7L2.5 5.8"/><path d="M2.5 2.5v3.3h3.3"/></svg>
+        <span class="t">Start over</span>
+      </button>
+    </div>
   </header>
 
-  <section aria-labelledby="step1-heading">
-    <h2 id="step1-heading">1. Load Estate Inputs or Sample Preset</h2>
-    <div>
-      <button type="button" id="btn-preset-single">Load 150-User Single-Pool Preset (with C27)</button>
-      <button type="button" id="btn-preset-multi">Load 3-Pool Auto-Merge Preset (Boundary Demo)</button>
-      <button type="button" id="btn-preset-t2t">Load Basic Tenant-to-Tenant (T2T) Preset</button>
-    </div>
-    <div>
-      <label for="select-migration-mode">Migration Mode:</label>
-      <select id="select-migration-mode">
-        <option value="same-tenant">Same-Tenant Baseline (Default)</option>
-        <option value="basic-t2t">Basic Tenant-to-Tenant (T2T Single-Pool)</option>
-      </select>
-    </div>
-    <div>
-      <label for="file-c11">C11 Current-State Facts (<code>current-state-facts.json</code>):</label>
-      <input type="file" id="file-c11" accept=".json,application/json">
-    </div>
-    <div>
-      <label for="file-c19">C19 Estate Intake (<code>intake.json</code>):</label>
-      <input type="file" id="file-c19" accept=".json,application/json">
-    </div>
-    <div>
-      <label for="file-c27">C27 Measured Usage (optional, <code>measured-usage.json</code>):</label>
-      <input type="file" id="file-c27" accept=".json,application/json">
-    </div>
-    <p id="status-banner" role="status" aria-live="polite">Ready. Select a sample preset or drop your JSON files.</p>
-  </section>
+  <div class="wz-main">
+    <section class="wz-stage" id="stage-load" data-step="0" aria-labelledby="step1-heading">
+      <h2 id="step1-heading">Load estate inputs</h2>
+      <p class="purpose">Pick a sample preset or drop your redacted <code>C11</code>, <code>C19</code>, and optional <code>C27</code> JSON files. Nothing leaves this browser.</p>
 
-  <section aria-labelledby="step2-heading">
-    <h2 id="step2-heading">2. Single-Pool Baseline Summary (<code>tp-01</code>)</h2>
-    <div id="boundary-notices" hidden></div>
-    <div id="summary-cards"></div>
-  </section>
+      <div class="preset-row" role="group" aria-label="Sample presets">
+        <button type="button" id="btn-preset-single">150-User Single-Pool (with C27)</button>
+        <button type="button" class="secondary" id="btn-preset-multi">3-Pool Auto-Merge (Boundary)</button>
+        <button type="button" class="secondary" id="btn-preset-t2t">Basic Tenant-to-Tenant (T2T)</button>
+      </div>
 
-  <section aria-labelledby="step3-heading">
-    <h2 id="step3-heading">3. Download C14 Manifest &amp; Approval + Cloud Shell Hand-Off</h2>
-    <div>
-      <button type="button" id="btn-download-manifest" disabled>Download manifest.json (C14 v1)</button>
-      <button type="button" id="btn-download-approval" disabled>Download manifest.approval.json</button>
-      <button type="button" id="btn-download-t2t-checklist" disabled>Download t2t-checklist.json (Basic T2T)</button>
-      <button type="button" id="btn-download-lza-bicepparam" disabled>Download lza.starter.bicepparam (Optional LZA)</button>
-    </div>
-    <h3>Cloud Shell / Local PowerShell Hand-Off (<code>avd-landing-zone</code>)</h3>
-    <pre><code id="cloudshell-snippet"># Load an estate above to generate the ConvertFrom-AvdTargetState.ps1 command.</code></pre>
-    <h3>Generated <code>manifest.json</code> Preview</h3>
-    <pre><code id="manifest-preview">{}</code></pre>
-  </section>
-  <p class="credit">A <a href="https://prignano.ai/">prignano.ai</a> production</p>
+      <div class="mode-row">
+        <label class="field" for="select-migration-mode">
+          <span>Migration mode</span>
+          <select id="select-migration-mode">
+            <option value="same-tenant">Same-Tenant Baseline (Default)</option>
+            <option value="basic-t2t">Basic Tenant-to-Tenant (T2T Single-Pool)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="drop-grid">
+        <label class="filedrop" id="drop-c11" for="file-c11">
+          <input type="file" id="file-c11" accept=".json,application/json">
+          <span class="what">Estate Facts<span class="dev-id"> (C11)</span></span>
+          <span class="hint"><code>current-state-facts.json</code> (required)</span>
+          <span class="file" id="file-c11-name"></span>
+        </label>
+        <label class="filedrop" id="drop-c19" for="file-c19">
+          <input type="file" id="file-c19" accept=".json,application/json">
+          <span class="what">Estate Intake<span class="dev-id"> (C19)</span></span>
+          <span class="hint"><code>intake.json</code> (required)</span>
+          <span class="file" id="file-c19-name"></span>
+        </label>
+        <label class="filedrop" id="drop-c27" for="file-c27">
+          <input type="file" id="file-c27" accept=".json,application/json">
+          <span class="what">Measured Usage<span class="dev-id"> (C27)</span></span>
+          <span class="hint"><code>measured-usage.json</code> (optional)</span>
+          <span class="file" id="file-c27-name"></span>
+        </label>
+      </div>
+
+      <div class="reply" id="status-reply" role="status" aria-live="polite">
+        <div class="bl" id="status-bl">Ready to design</div>
+        <p id="status-banner">Select a sample preset or drop your JSON files above.</p>
+      </div>
+    </section>
+
+    <section class="wz-stage hidden" id="stage-review" data-step="1" aria-labelledby="step2-heading">
+      <h2 id="step2-heading">Single-pool baseline (<code>tp-01</code>)</h2>
+      <p class="purpose">Review the sized host pool, retail cost estimate, and any single-pool boundary notices before exporting.</p>
+      <div id="boundary-notices" class="notice-panel" hidden></div>
+      <div id="summary-cards"></div>
+    </section>
+
+    <section class="wz-stage hidden" id="stage-export" data-step="2" aria-labelledby="step3-heading">
+      <h2 id="step3-heading">Export manifest &amp; hand off</h2>
+      <p class="purpose">Download the signed C14 manifest and approval file, then render <code>avd.bicepparam</code> in <code>avd-landing-zone</code>.</p>
+
+      <div class="export-actions">
+        <button type="button" id="btn-download-manifest" disabled>Download manifest.json (C14 v1)</button>
+        <button type="button" class="secondary" id="btn-download-approval" disabled>Download manifest.approval.json</button>
+        <button type="button" class="secondary" id="btn-download-t2t-checklist" disabled>Download t2t-checklist.json (Basic T2T)</button>
+        <button type="button" class="secondary" id="btn-download-lza-bicepparam" disabled>Download lza.starter.bicepparam</button>
+      </div>
+
+      <div class="term">
+        <div class="term-head">
+          <span class="term-label">Render avd.bicepparam in avd-landing-zone</span>
+          <button type="button" id="btn-copy-snippet">Copy</button>
+        </div>
+        <pre><code id="cloudshell-snippet"># Load an estate in Step 1 to generate the ConvertFrom-AvdTargetState.ps1 command.</code></pre>
+      </div>
+
+      <details class="more">
+        <summary>Generated <code>manifest.json</code> preview</summary>
+        <pre><code id="manifest-preview">{}</code></pre>
+      </details>
+    </section>
+  </div>
 </main>
+
+<div class="wz-nav wide">
+  <div class="in">
+    <button type="button" class="secondary" id="btn-prev" disabled>Back</button>
+    <span class="where" id="step-where">Step 1 of 3 &middot; Load estate</span>
+    <button type="button" id="btn-next" disabled>Next</button>
+  </div>
+</div>
+
+<div class="after">
+  <footer class="disclaimer">
+    <p>Personal project, not for production, as is. Not affiliated with the author's employer or Microsoft. Everything runs in your browser (<code>connect-src 'none'</code>).</p>
+  </footer>
+  <p class="credit">A <a href="https://prignano.ai/">prignano.ai</a> production</p>
+</div>
 </body>
 </html>
