@@ -161,6 +161,13 @@ test("scanForLeaks refuses raw UUIDs, emails, IPv4s, and UNC paths", () => {
 test("portal HTML enforces connect-src 'none' CSP and design-system.lock.json hashes match", () => {
   const html = fs.readFileSync(path.join(repoRoot, "site/portal/index.html"), "utf8");
   assert.match(html, /connect-src 'none'/);
+  const bar = (html.match(/<header class="bar">([\s\S]*?)<\/header>/) || [])[1] || "";
+  assert.match(
+    bar,
+    /<nav class="switcher" aria-label="avd-ops tools"><a href="https:\/\/avd-ops\.dev\/">Docs<\/a><a href="https:\/\/avd-ops\.app\/deploy\/">Deploy<\/a><a href="https:\/\/avd-ops\.app\/assess\/">Assess<\/a><a href="\.\/" aria-current="page">Migrate<\/a><a href="https:\/\/avd-ops\.app\/status\/">Status<\/a><\/nav>/
+  );
+  assert.match(bar, /class="iconbtn dev"/);
+  assert.match(bar, /class="iconbtn theme"/);
 
   const lock = JSON.parse(
     fs.readFileSync(path.join(repoRoot, "site/assets/design-system.lock.json"), "utf8")
