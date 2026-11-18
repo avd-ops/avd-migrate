@@ -7,13 +7,21 @@
 <title>avd-migrate &mdash; Single-Pool Target-State Baseline Designer</title>
 <link rel="icon" href="../assets/brand/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/avd-ops.css">
-<link rel="stylesheet" href="../assets/avd-ops-shell.css">
 <link rel="stylesheet" href="../assets/avd-ops-portal.css">
+<link rel="stylesheet" href="../assets/avd-ops-shell.css">
 <script src="../assets/theme.js" defer></script>
 <script type="module" src="./migrate-app.js"></script>
 </head>
-<body>
-<main class="wrap">
+<body class="shell portal">
+<a class="skip" href="#main">Skip to content</a>
+<header class="bar"><div class="bar-in"><a class="brand" href="https://avd-ops.dev/"><img class="mark" src="../assets/brand/mark.svg" alt="" width="44" height="44"><span class="name"><span class="word">avd-ops</span><span class="tag">Deploy quietly</span></span></a>
+<nav class="switcher" aria-label="avd-ops tools"><a href="https://avd-ops.dev/">Docs</a><a href="https://avd-ops.app/deploy/">Deploy</a><a href="https://avd-ops.app/assess/">Assess</a><a href="./" aria-current="page">Migrate</a><a href="https://avd-ops.app/status/">Status</a></nav>
+<details class="notice" id="disclaimer"><summary><strong class="long">Personal project. Not for production. No warranty.</strong><strong class="short">Not for production</strong></summary>
+<div class="full"><ul><li><strong>Personal project, not for production.</strong> Provided as is, without warranty of any kind (<a href="https://github.com/avd-ops/avd-migrate/blob/main/LICENSE">MIT License</a>).</li>
+<li>Not affiliated with, endorsed by or supported by the author's employer, and not an official Microsoft product.</li>
+<li>Use a lab subscription and tenant.</li></ul></div></details>
+<div class="tools"><button class="iconbtn dev" type="button" aria-pressed="false" aria-label="Show contract and decision IDs (dev mode)" title="Show contract and decision IDs (dev mode)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5 3 10l3.5 3.5M13.5 6.5 17 10l-3.5 3.5M11.2 4.5 8.8 15.5"/></svg></button><button class="iconbtn theme" type="button" aria-label="Switch theme"><svg class="sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.5"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg><svg class="moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9Z"/></svg></button></div></div></header>
+<main id="main" class="wrap">
   <header>
     <p class="warn">
       <strong>Personal project, not for production.</strong> Provided as is, without warranty of any kind (MIT License).
@@ -76,6 +84,7 @@
     <h3>Generated <code>manifest.json</code> Preview</h3>
     <pre><code id="manifest-preview">{}</code></pre>
   </section>
+  <p class="credit">A <a href="https://prignano.ai/">prignano.ai</a> production</p>
 </main>
 </body>
 </html>
